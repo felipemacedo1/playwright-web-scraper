@@ -1,0 +1,4 @@
+# Placeholder for log files
+# Scraper logs will be saved here
+
+*.log

@@ -1,0 +1,7 @@
+# Placeholder for scraped data
+# This directory will contain CSV, JSON, and SQLite files
+
+*.csv
+*.json
+*.db
+*.sqlite
