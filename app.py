@@ -88,6 +88,7 @@ with col2:
 headless = st.sidebar.checkbox("🔇 Headless mode", value=True, help="Executar sem interface gráfica")
 no_scroll = st.sidebar.checkbox("🚫 Não fazer scroll", value=False)
 use_storage = st.sidebar.checkbox("🔐 Usar autenticação (storage_state.json)", value=False)
+auto_detect = st.sidebar.checkbox("🤖 Auto-detectar seletores", value=True, help="Detecta automaticamente seletores CSS para o site")
 
 # Output
 st.sidebar.markdown("---")
@@ -156,6 +157,7 @@ with tab1:
             "URL": url or "Não definida",
             "Max items": max_items,
             "Headless": "Sim" if headless else "Não",
+            "Auto-detect": "Sim" if auto_detect else "Não",
             "Scroll": "Não" if no_scroll else f"Sim (pausa: {scroll_pause}s)",
             "Output": output_path,
             "Formato": output_format.upper(),
@@ -200,10 +202,11 @@ with tab1:
                 with log_container:
                     st.text("🌐 Iniciando navegador...")
                 
-                scraper = WebScraper(headless=headless)
+                scraper = WebScraper(headless=headless, auto_detect=auto_detect)
                 
-                # Aplica seletores customizados se fornecidos
+                # Aplica seletores customizados se fornecidos (desabilita auto-detect neste caso)
                 if any(custom_selectors.values()):
+                    scraper.auto_detect = False
                     for key, value in custom_selectors.items():
                         if value:
                             scraper.SELECTORS[key] = value

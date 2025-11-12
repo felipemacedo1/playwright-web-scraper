@@ -10,6 +10,8 @@ import time
 from typing import List, Dict, Optional
 from playwright.sync_api import sync_playwright, Browser, Page, BrowserContext
 
+from .auto_detect import auto_detect_selectors
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,10 +23,11 @@ class WebScraper:
     - Suporte a login com storage_state
     - Scroll automático até o fim da página
     - Extração genérica de dados
+    - Auto-detecção de seletores CSS
     - Tratamento de erros robusto
     """
     
-    # Seletores genéricos (ajuste para cada site específico)
+    # Seletores genéricos (fallback)
     SELECTORS = {
         'container': 'article, .post, .card, .item, .news-item, .athing, tr.athing',
         'title': '.titleline > a, h1, h2, h3, .title, .headline',
@@ -40,7 +43,8 @@ class WebScraper:
         browser_type: str = "chromium",
         viewport: Dict[str, int] = None,
         user_agent: str = None,
-        timeout: int = 30000
+        timeout: int = 30000,
+        auto_detect: bool = True
     ):
         """
         Inicializa o scraper.
@@ -51,12 +55,14 @@ class WebScraper:
             viewport: Dimensões da janela {'width': 1920, 'height': 1080}
             user_agent: User-Agent customizado
             timeout: Timeout padrão em milissegundos
+            auto_detect: Se True, tenta detectar seletores automaticamente
         """
         self.headless = headless
         self.browser_type = browser_type
         self.viewport = viewport or {"width": 1920, "height": 1080}
         self.user_agent = user_agent
         self.timeout = timeout
+        self.auto_detect = auto_detect
         
         self.playwright = None
         self.browser: Optional[Browser] = None
@@ -178,7 +184,7 @@ class WebScraper:
     
     def extract_data(self, max_items: Optional[int] = None) -> List[Dict[str, str]]:
         """
-        Extrai dados da página usando seletores genéricos.
+        Extrai dados da página usando seletores genéricos ou auto-detectados.
         
         Args:
             max_items: Número máximo de itens para extrair
@@ -188,12 +194,40 @@ class WebScraper:
         """
         logger.info("Iniciando extração de dados...")
         
+        # Auto-detecção de seletores se habilitado
+        if self.auto_detect:
+            try:
+                logger.info("🔍 Tentando auto-detectar seletores...")
+                detected_selectors = auto_detect_selectors(self.page)
+                
+                # Atualiza seletores com os detectados
+                for key, value in detected_selectors.items():
+                    if value:
+                        self.SELECTORS[key] = value
+                
+                logger.info("✅ Seletores auto-detectados aplicados")
+            except Exception as e:
+                logger.warning(f"⚠️ Auto-detecção falhou, usando seletores padrão: {str(e)}")
+        
         data = []
         
         try:
             # Busca todos os containers de conteúdo
             containers = self.page.query_selector_all(self.SELECTORS['container'])
             logger.info(f"Encontrados {len(containers)} containers na página")
+            
+            # Se não achou nada, tenta fallback
+            if len(containers) == 0:
+                logger.warning("⚠️ Nenhum container encontrado com seletores atuais")
+                logger.info("🔄 Tentando seletores alternativos...")
+                
+                # Tenta tags semânticas básicas
+                fallback_selectors = ['article', 'section', 'div[class*="post"]', 'div[class*="item"]']
+                for selector in fallback_selectors:
+                    containers = self.page.query_selector_all(selector)
+                    if len(containers) > 0:
+                        logger.info(f"✅ Encontrados {len(containers)} com {selector}")
+                        break
             
             # Limita quantidade se especificado
             if max_items:
