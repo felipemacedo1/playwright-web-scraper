@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 SITE_TEMPLATES = {
     # News & Blogs
     'wikipedia.org': {
-        'container': '.mw-parser-output > p, .mw-parser-output > h2, .mw-parser-output > h3',
-        'title': '#firstHeading, h1',
-        'content': 'p',
-        'link': 'a[href]'
+        'container': '.mw-parser-output > p',
+        'title': '#firstHeading',
+        'content': '.mw-parser-output > p',
+        'link': 'a[href^="/wiki/"]:not([href*=":"])'  # Links internos, exclui namespaces
     },
     'medium.com': {
         'container': 'article',
