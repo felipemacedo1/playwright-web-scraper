@@ -14,8 +14,12 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 
+# Fix para Python 3.12+ com Playwright sync API
+import nest_asyncio
+nest_asyncio.apply()
+
+from dotenv import load_dotenv
 from agent.scraper import WebScraper
 from agent.storage import save_data
 from agent.llm_refiner import refine_data, OPENAI_AVAILABLE
@@ -204,10 +208,10 @@ def main():
         # Inicia scraping
         logger.info("\n🚀 Iniciando scraping...")
         
-        with WebScraper(headless=args.headless) as scraper:
-            # Inicia navegador
-            scraper.start(storage_state=storage_state)
-            
+        scraper = WebScraper(headless=args.headless)
+        scraper.start(storage_state=storage_state)
+        
+        try:
             # Navega para URL
             if not scraper.navigate(args.url):
                 logger.error("❌ Falha ao carregar página")
@@ -238,6 +242,9 @@ def main():
             
             if len(data) > 3:
                 logger.info(f"  ... e mais {len(data) - 3} itens")
+        
+        finally:
+            scraper.close()
         
         # Refinamento com IA (opcional)
         if args.refine:

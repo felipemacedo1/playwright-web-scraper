@@ -3,9 +3,14 @@
 # Core
 playwright==1.40.0
 python-dotenv==1.0.0
+nest-asyncio==1.6.0
 
 # Data handling
 beautifulsoup4==4.12.0
+pandas==2.2.0
+
+# Web Interface
+streamlit==1.41.0
 
 # OpenAI (opcional - para refinamento com IA)
 openai==1.3.0

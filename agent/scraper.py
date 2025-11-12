@@ -26,10 +26,10 @@ class WebScraper:
     
     # Seletores genéricos (ajuste para cada site específico)
     SELECTORS = {
-        'container': 'article, .post, .card, .item, .news-item',
-        'title': 'h1, h2, h3, .title, .headline',
-        'author': '.author, .byline, [rel="author"]',
-        'date': 'time, .date, .published',
+        'container': 'article, .post, .card, .item, .news-item, .athing, tr.athing',
+        'title': '.titleline > a, h1, h2, h3, .title, .headline',
+        'author': '.author, .byline, [rel="author"], .hnuser',
+        'date': 'time, .date, .published, .age',
         'content': '.content, .description, .summary, p',
         'link': 'a[href]',
     }
@@ -231,10 +231,18 @@ class WebScraper:
         """
         item = {}
         
-        # Extrai título
-        title_el = container.query_selector(self.SELECTORS['title'])
+        # Extrai título (tenta .titleline > a primeiro, depois fallback para outros)
+        title_el = container.query_selector('.titleline > a')
+        if not title_el:
+            title_el = container.query_selector(self.SELECTORS['title'])
         if title_el:
             item['title'] = title_el.inner_text().strip()
+            # Pega o link do título também
+            href = title_el.get_attribute('href')
+            if href:
+                item['link'] = self.page.evaluate(
+                    f"new URL('{href}', window.location.href).href"
+                )
         
         # Extrai autor
         author_el = container.query_selector(self.SELECTORS['author'])
@@ -255,15 +263,16 @@ class WebScraper:
         if content_el:
             item['content'] = content_el.inner_text().strip()
         
-        # Extrai link
-        link_el = container.query_selector(self.SELECTORS['link'])
-        if link_el:
-            href = link_el.get_attribute('href')
-            if href:
-                # Converte link relativo em absoluto
-                item['link'] = self.page.evaluate(
-                    f"new URL('{href}', window.location.href).href"
-                )
+        # Extrai link (apenas se ainda não tiver do título)
+        if 'link' not in item:
+            link_el = container.query_selector(self.SELECTORS['link'])
+            if link_el:
+                href = link_el.get_attribute('href')
+                if href:
+                    # Converte link relativo em absoluto
+                    item['link'] = self.page.evaluate(
+                        f"new URL('{href}', window.location.href).href"
+                    )
         
         return item
     
